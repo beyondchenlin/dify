@@ -46,6 +46,34 @@ export function getBaseURL(path: string) {
   return url
 }
 
+function isAbortError(error: unknown): boolean {
+  if (!error)
+    return false
+
+  if (error instanceof DOMException && error.name === 'AbortError')
+    return true
+
+  if (error instanceof Error) {
+    if (error.name === 'AbortError')
+      return true
+
+    if (error.message.includes('signal is aborted') || error.message.includes('AbortError'))
+      return true
+  }
+
+  if (typeof error === 'object') {
+    const nestedError = error as { cause?: unknown, error?: unknown }
+    return isAbortError(nestedError.cause) || isAbortError(nestedError.error)
+  }
+
+  return false
+}
+
+function logClientError(error: unknown) {
+  if (!isAbortError(error))
+    console.error(error)
+}
+
 const marketplaceLink = new OpenAPILink(marketplaceRouterContract, {
   url: MARKETPLACE_API_PREFIX,
   headers: () => (getMarketplaceHeaders()),
@@ -57,7 +85,7 @@ const marketplaceLink = new OpenAPILink(marketplaceRouterContract, {
   },
   interceptors: [
     onError((error) => {
-      console.error(error)
+      logClientError(error)
     }),
   ],
 })
@@ -79,7 +107,7 @@ const consoleLink = new OpenAPILink(consoleRouterContract, {
   },
   interceptors: [
     onError((error) => {
-      console.error(error)
+      logClientError(error)
     }),
   ],
 })
