@@ -309,6 +309,36 @@ describe('usePipelineInit', () => {
         })
       })
     })
+
+    it('should refetch draft when the initial sync loses a duplicate-init race', async () => {
+      const mockJsonError = {
+        json: vi.fn().mockResolvedValue({ code: 'draft_workflow_not_exist' }),
+        bodyUsed: false,
+      }
+      const syncRaceError = {
+        json: vi.fn().mockResolvedValue({ code: 'draft_workflow_not_sync' }),
+        bodyUsed: false,
+      }
+      mockFetchWorkflowDraft
+        .mockReset()
+        .mockRejectedValueOnce(mockJsonError)
+        .mockResolvedValue({
+          graph: { nodes: [], edges: [], viewport: {} },
+          hash: 'race-hash',
+          updated_at: '2024-01-03T00:00:00Z',
+          tool_published: false,
+          environment_variables: [],
+          rag_pipeline_variables: [],
+        })
+      mockSyncWorkflowDraft.mockRejectedValueOnce(syncRaceError)
+
+      renderHook(() => usePipelineInit())
+
+      await waitFor(() => {
+        expect(mockSetSyncWorkflowDraftHash).toHaveBeenCalledWith('race-hash')
+      })
+      expect(mockFetchWorkflowDraft.mock.calls.length).toBeGreaterThanOrEqual(2)
+    })
   })
 
   describe('missing datasetId', () => {

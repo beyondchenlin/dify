@@ -131,6 +131,25 @@ describe('useWorkflowInit — hash fix (draft_workflow_not_exist)', () => {
     expect(order.indexOf('hash:new-hash')).toBeLessThan(order.indexOf('fetch:2'))
   })
 
+  it('should refetch draft when the initial sync loses a duplicate-init race', async () => {
+    const syncRaceError = {
+      json: vi.fn().mockResolvedValue({ code: 'draft_workflow_not_sync' }),
+      bodyUsed: false,
+    }
+    mockFetchWorkflowDraft
+      .mockReset()
+      .mockRejectedValueOnce(notExistError())
+      .mockResolvedValue(draftResponse)
+    mockSyncWorkflowDraft.mockRejectedValueOnce(syncRaceError)
+
+    renderHook(() => useWorkflowInit())
+
+    await waitFor(() => {
+      expect(mockSetSyncWorkflowDraftHash).toHaveBeenCalledWith('server-hash')
+    })
+    expect(mockFetchWorkflowDraft.mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+
   it('should hydrate draft state, preload defaults, and derive published workflow metadata on success', async () => {
     workflowConfigState = {
       data: { enabled: true, sizeLimit: 20 },
