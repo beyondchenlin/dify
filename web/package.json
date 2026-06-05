@@ -26,6 +26,7 @@
     "analyze-component": "node ./scripts/analyze-component.js",
     "build": "next build",
     "build:vinext": "vinext build",
+    "brand:assets": "node ./scripts/generate-brand-assets.js",
     "dev": "next dev",
     "dev:inspect": "next dev --inspect",
     "dev:proxy": "dev-proxy --config ./dev-proxy.config.ts --env-file ./.env.local",
